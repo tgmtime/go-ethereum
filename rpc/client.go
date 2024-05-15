@@ -18,12 +18,9 @@ package rpc
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net"
-	"net/http"
 	"net/url"
 	"os"
 	"reflect"
@@ -200,18 +197,6 @@ func DialOptions(ctx context.Context, rawurl string, options ...ClientOption) (*
 	}
 
 	cfg := new(clientConfig)
-
-	//http1.1 => http2
-	tr := &http.Transport{
-		TLSClientConfig:   &tls.Config{InsecureSkipVerify: true}, // Optional, adjust security measures when necessary
-		ForceAttemptHTTP2: true,                                  // !!!note: Including this enables HTTP/2, omitting defaults to HTTP/1.1
-		DialContext: (&net.Dialer{
-			Timeout:   30 * time.Second, // Connection timeout in case of exceeding the time
-			KeepAlive: 30 * time.Second, // Keep-alive time
-			DualStack: true,             // Client IPv4/IPv6 support
-		}).DialContext,
-	}
-	cfg.httpClient = &http.Client{Transport: tr}
 
 	for _, opt := range options {
 		opt.applyOption(cfg)

@@ -19,12 +19,14 @@ package rpc
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"math"
 	"mime"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -226,6 +228,21 @@ func (hc *httpConn) doRequest(ctx context.Context, msg interface{}) (io.ReadClos
 	}
 
 	// do request
+
+	tr := &http.Transport{
+		TLSClientConfig:   &tls.Config{InsecureSkipVerify: true}, // Optionally, configure security measures appropriately when needed
+		ForceAttemptHTTP2: true,                                  // !!!note: Adding this enables HTTP/2, if not added, HTTP/1.1 will be used by default
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second, // Timeout in case connection exceeds the time limit
+			KeepAlive: 30 * time.Second, // Keep-alive duration
+			DualStack: true,             // Client IPv4/IPv6 support
+		}).DialContext,
+	}
+
+	hc.client = &http.Client{
+		Transport: tr,
+	}
+
 	resp, err := hc.client.Do(req)
 	if err != nil {
 		return nil, err
